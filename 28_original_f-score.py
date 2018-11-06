@@ -284,18 +284,19 @@ def plot_result(res):
 
 
 class Strategy28:
-    fscore = FScore()
-    fscore.init_fscore()
-    fscore.load_data()
-    balance = 1e8
-    profit_list = []
-    balance_list = []
-    turnover_list = []
-    best_balance = prev_balance = balance = 1e8
-    mdd = 1
-    hold = {}
-    df_chk_day = pd.read_hdf('../data/hdf_day/A005930.hdf', 'table', col_index=False)
-    df_chk_day.index = df_chk_day['0'].apply(to_date)
+    def __init__(self):
+        self.fscore = FScore()
+        self.fscore.init_fscore()
+        self.fscore.load_data()
+        self.balance = 1e8
+        self.profit_list = []
+        self.balance_list = []
+        self.turnover_list = []
+        self.best_balance = self.prev_balance = self.balance = 1e8
+        self.mdd = 1
+        self.hold = {}
+        self.df_chk_day = pd.read_hdf('../data/hdf_day/A005930.hdf', 'table', col_index=False)
+        self.df_chk_day.index = self.df_chk_day['0'].apply(to_date)
 
     def not_trading_day(self, cd):
         if cd in self.df_chk_day.index:
@@ -313,10 +314,10 @@ class Strategy28:
             return
         est_bal = self.estimate_balance(cd)
         self.balance_list.append([cd, est_bal])
-        self.profit_list.append(self.balance/self.prev_balance-1)
-        self.best_balance = max(self.best_balance, self.balance)
-        self.mdd = min(self.mdd, self.balance/self.best_balance)
-        self.prev_balance = self.balance
+        self.profit_list.append(est_bal/self.prev_balance-1)
+        self.best_balance = max(self.best_balance, est_bal)
+        self.mdd = min(self.mdd, est_bal/self.best_balance)
+        self.prev_balance = est_bal
         self.turnover_list.append(0)
 
     def update_turnover(self, hold_cpy, cd):

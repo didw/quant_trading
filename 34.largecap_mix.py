@@ -364,10 +364,10 @@ class Strategy34:
             return
         est_bal = self.estimate_balance(cd)
         self.balance_list.append([cd, est_bal])
-        self.profit_list.append(self.balance/self.prev_balance-1)
-        self.best_balance = max(self.best_balance, self.balance)
-        self.mdd = min(self.mdd, self.balance/self.best_balance)
-        self.prev_balance = self.balance
+        self.profit_list.append(est_bal/self.prev_balance-1)
+        self.best_balance = max(self.best_balance, est_bal)
+        self.mdd = min(self.mdd, est_bal/self.best_balance)
+        self.prev_balance = est_bal
         self.turnover_list.append(0)
 
     def update_turnover(self, hold_cpy, cd):
