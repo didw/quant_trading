@@ -280,7 +280,7 @@ def plot_result(res):
     #ax.set_yscale("log")
 
     fig.autofmt_xdate()
-    plt.savefig('res-28.png')
+    plt.savefig('28.res.png')
 
 
 class Strategy28:
