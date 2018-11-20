@@ -23,8 +23,8 @@ def to_float(s):
 
 class FScore:
     year = 2001
-    column = '%d4Q'%year
-    pcolumn = '%d4Q'%(year-1,)
+    column = ['%d%dQ'%(2001, i) for i in range(1,5)]
+    pcolumn = ['%d%dQ'%(2001-1, i) for i in range(1,5)]
     selected = []
     def init_fscore(self):
         순이익 = pd.read_csv('../data/fundamental/순이익.csv')
@@ -34,8 +34,8 @@ class FScore:
 
     def set_year(self, year):
         self.year = year
-        self.column = '%d4Q'%year
-        self.pcolumn = '%d4Q'%(year-1,)
+        self.column = ['%d%dQ'%(year, i) for i in range(1,5)]
+        self.pcolumn = ['%d%dQ'%(year-1, i) for i in range(1,5)]
 
     def load_data(self):
         self.순이익 = pd.read_csv('../data/fundamental/순이익.csv').sort_values(by='Symbol').reset_index()
@@ -93,7 +93,10 @@ class FScore:
         """ 1   수익성 전년 당기순이익: 0 이상
         """
         #print("순이익적용", self.year, np.sum(self.순이익[self.column]>0))
-        selected = self.순이익.loc[self.순이익[self.column]>0,'Symbol']
+        c = self.column
+        s = self.순이익
+        순이익sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        selected = self.순이익.loc[순이익sum>0,'Symbol']
         self.fscore.loc[selected] += 1
         #print(self.fscore.head(), len(selected))
 
@@ -102,7 +105,10 @@ class FScore:
         """ 2   수익성 전년 영업현금흐름: 0이상
         """
         #print("영업현금흐름적용", self.year, np.sum(self.영업현금흐름[self.column]>0))
-        selected = self.영업현금흐름.loc[self.영업현금흐름[self.column]>0,'Symbol']
+        c = self.column
+        s = self.영업현금흐름
+        영업현금흐름sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        selected = self.영업현금흐름.loc[영업현금흐름sum>0,'Symbol']
         self.fscore.loc[selected] += 1
         #print(self.fscore.head(), len(selected))
 
@@ -110,8 +116,17 @@ class FScore:
         """ 3   수익성 ROA: 전년 대비 증가
         ROA = 순이익/총자산 (Return on Assets)
         """
-        ROA_py = self.순이익[self.pcolumn]/self.영업현금흐름[self.pcolumn]
-        ROA_ty = self.순이익[self.column]/self.영업현금흐름[self.column]
+        c = self.column
+        pc = self.pcolumn
+        s = self.영업현금흐름
+        영업현금흐름sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        p영업현금흐름sum = s[pc[0]] + s[pc[1]] + s[pc[2]] + s[pc[3]]
+        s = self.순이익
+        순이익sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        p순이익sum = s[pc[0]] + s[pc[1]] + s[pc[2]] + s[pc[3]]
+
+        ROA_py = p순이익sum/p영업현금흐름sum
+        ROA_ty = 순이익sum/영업현금흐름sum
         selected = self.순이익.loc[ROA_ty > ROA_py, 'Symbol']
         self.fscore.loc[selected] += 1
         #print(self.fscore.head(), len(selected))
@@ -119,7 +134,13 @@ class FScore:
     def 영업현금흐름순이익비교(self):
         """ 4   수익성 전년 영업현금흐름: 순이익보다 높음
         """
-        diff = self.영업현금흐름[self.column] - self.순이익[self.column]
+        c = self.column
+        pc = self.pcolumn
+        s = self.영업현금흐름
+        영업현금흐름sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        s = self.순이익
+        순이익sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        diff = 영업현금흐름sum - 순이익sum
         selected = self.순이익.loc[diff>0, 'Symbol']
         self.fscore.loc[selected] += 1
         #print(self.fscore.head(), len(selected))
@@ -127,8 +148,8 @@ class FScore:
     def 부채비율감소(self):
         """ 5   재무 건정성  부채비율: 전년 대비 감소
         """
-        부채비율_py = self.유동부채[self.pcolumn]/self.총자본[self.pcolumn]
-        부채비율_ty = self.유동부채[self.column]/self.총자본[self.column]
+        부채비율_py = self.유동부채[self.pcolumn[3]]/self.총자본[self.pcolumn[3]]
+        부채비율_ty = self.유동부채[self.column[3]]/self.총자본[self.column[3]]
         selected = self.순이익.loc[부채비율_py > 부채비율_ty, 'Symbol']
         self.fscore.loc[selected] += 1
         #print(self.fscore.head(), len(selected))
@@ -137,8 +158,8 @@ class FScore:
         """ 6   재무 건정성  유동비율: 전년 대비 증가
         유동비율 = 유동자산/유동부채
         """
-        유동비율_py = self.유동자산[self.pcolumn]/self.유동부채[self.pcolumn]
-        유동비율_ty = self.유동자산[self.column]/self.유동부채[self.column]
+        유동비율_py = self.유동자산[self.pcolumn[3]]/self.유동부채[self.pcolumn[3]]
+        유동비율_ty = self.유동자산[self.column[3]]/self.유동부채[self.column[3]]
         selected = self.순이익.loc[유동비율_py < 유동비율_ty, 'Symbol']
         self.fscore.loc[selected] += 1
         #print(self.fscore.head(), len(selected))
@@ -158,8 +179,16 @@ class FScore:
         """ 8   효율성 매출총이익률: 전년 대비 증가
         매출총이익률 = 매출총이익/매출액
         """
-        매출총이익률_py = self.매출총이익[self.pcolumn]/self.매출액[self.pcolumn]
-        매출총이익률_ty = self.매출총이익[self.column]/self.매출액[self.column]
+        c = self.column
+        pc = self.pcolumn
+        s = self.매출총이익
+        매출총이익sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        p매출총이익sum = s[pc[0]] + s[pc[1]] + s[pc[2]] + s[pc[3]]
+        s = self.매출액
+        매출액sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        p매출액sum = s[pc[0]] + s[pc[1]] + s[pc[2]] + s[pc[3]]
+        매출총이익률_py = p매출총이익sum/p매출액sum
+        매출총이익률_ty = 매출총이익sum/매출액sum
         selected = self.순이익.loc[매출총이익률_py<매출총이익률_ty, 'Symbol']
         self.fscore.loc[selected] += 1
         #print(self.fscore.head(), len(selected))
@@ -168,8 +197,13 @@ class FScore:
         """ 9   효율성 자산회전율: 전년 대비 증가
         자산회전율 = 매출액/총자산
         """
-        자산회전율_py = self.매출액[self.pcolumn]/self.총자산[self.pcolumn]
-        자산회전율_ty = self.매출액[self.column]/self.총자산[self.column]
+        c = self.column
+        pc = self.pcolumn
+        s = self.매출액
+        매출액sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        p매출액sum = s[pc[0]] + s[pc[1]] + s[pc[2]] + s[pc[3]]
+        자산회전율_py = p매출액sum/self.총자산[self.pcolumn[3]]
+        자산회전율_ty = 매출액sum/self.총자산[self.column[3]]
         selected = self.순이익.loc[자산회전율_py<자산회전율_ty, 'Symbol']
         self.fscore.loc[selected] += 1
         #print(self.fscore.head(), len(selected))
@@ -193,7 +227,7 @@ class FScore:
         PBR(주가순자산비율) = 주가 / 주당순자산가치 = 시가총액/순자산
         """
         cur_date = '%4d-04'%(self.year+1)
-        순자산 = (self.총자산[self.column]-self.유동부채[self.column])
+        순자산 = (self.총자산[self.column[3]]-self.유동부채[self.column[3]])
         PBR = self.시총[cur_date]/순자산
         res = pd.concat([self.시총['Symbol'],self.시총[cur_date]/순자산,PBR.rank()],axis=1)
         res.columns = ['Symbol','PBR','rank']
@@ -207,7 +241,7 @@ class FScore:
         PBR(주가순자산비율) = 주가 / 주당순자산가치 = 시가총액/순자산
         """
         cur_date = '%4d-04'%(self.year+1)
-        순자산 = (self.총자산[self.column]-self.유동부채[self.column])
+        순자산 = (self.총자산[self.column[3]]-self.유동부채[self.column[3]])
         PBR = self.시총[cur_date]/순자산
         res = pd.concat([self.시총['Symbol'],self.시총[cur_date]/순자산,PBR.rank(),self.시총[cur_date].rank()],axis=1)
         res.columns = ['Symbol','PBR','rank','rank2']
@@ -377,7 +411,7 @@ class Strategy28:
         print("profit: x%d, cagr:%d%%, mdd:%d%%, SR:%.1f"%(profit, CAGR, MDD, SR))
 
     def main(self):
-        for year in range(2001,2016):
+        for year in range(2006,2016):
             self.fscore.init_fscore()
             self.fscore.set_year(year)
             self.fscore.set_selected()

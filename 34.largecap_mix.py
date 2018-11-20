@@ -27,6 +27,8 @@ class Combo:
         self.year = 2005
         self.column = '%d4Q'%self.year
         self.pcolumn = '%d4Q'%(self.year-1,)
+        self.column = ['%d%dQ'%(2005, i) for i in range(1,5)]
+        self.pcolumn = ['%d%dQ'%(2005-1, i) for i in range(1,5)]
         self.stock_date = datetime.date(self.year+1,5,25)
         self.selected = []
         self.data = {}
@@ -37,8 +39,8 @@ class Combo:
 
     def set_year(self, year):
         self.year = year
-        self.column = '%d4Q'%year
-        self.pcolumn = '%d4Q'%(year-1,)
+        self.column = ['%d%dQ'%(year, i) for i in range(1,5)]
+        self.pcolumn = ['%d%dQ'%(year-1, i) for i in range(1,5)]
         self.stock_date = datetime.date(year+1,5,25)
 
     def load_data(self):
@@ -151,7 +153,10 @@ class Combo:
         """ GP/A = 매출총이익/총자산
         매출총이익=매출액-매출원가
         """
-        GPA = self.매출총이익[self.column]/self.총자산[self.column]
+        c = self.column
+        s = self.매출총이익
+        매출총이익sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        GPA = 매출총이익sum/self.총자산[self.column[3]]
         res = GPA.rank(ascending=False)
         res.index = self.매출총이익['Symbol']
         return res
@@ -177,38 +182,47 @@ class Combo:
             EBITTA: 영업이익(EBIT) + 감가상각비 + 감모상각비
         6. 배당수익률
         """
+        c = self.column
+        s = self.순이익
+        순이익sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
         현재주가 = self.make_현재주가()
         symbol_list = 현재주가.index
         this_month = '%4d-04'%(self.year+1,)
         발행주식수 = self.시총[this_month]/self.수정주가[this_month]
-        주당순이익 = self.순이익[self.column]/발행주식수
+        주당순이익 = 순이익sum/발행주식수
         주당순이익 = 주당순이익[symbol_list]
         PER = 현재주가/주당순이익
         PERr = PER.rank()
 
-        순자산 = (self.총자산[self.column]-self.유동부채[self.column])
+        순자산 = (self.총자산[self.column[3]]-self.유동부채[self.column[3]])
         주당순자산 = 순자산/발행주식수
         주당순자산 = 주당순자산[symbol_list]
         PBR = 현재주가/주당순자산
         PBRr = PBR.rank()
 
-        주당영현흐 = self.영업현금흐름[self.column]/발행주식수
+        s = self.영업현금흐름
+        영업현금흐름sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        주당영현흐 = 영업현금흐름sum/발행주식수
         주당영현흐 = 주당영현흐[symbol_list]
         PCR = 현재주가/주당영현흐
         PCRr = PCR.rank()
 
-        주당매출 = self.매출액[self.column]/발행주식수
+        s = self.매출액
+        매출액sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        주당매출 = 매출액sum/발행주식수
         주당매출 = 주당매출[symbol_list]
         PSR = 현재주가/주당매출
         PSRr = PSR.rank()
 
+        s = self.EBITDA
+        EBITDAsum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
         시총 = 현재주가*발행주식수
-        EV = 시총 + self.유동부채[self.column] - self.현금및현금성자산[self.column]
-        EVEBITDA = EV/self.EBITDA[self.column]
+        EV = 시총 + self.유동부채[self.column[3]] - self.현금및현금성자산[self.column[3]]
+        EVEBITDA = EV/EBITDAsum
         EVEBITDA = EVEBITDA[symbol_list]
         EVEBITDAr = EVEBITDA.rank()
 
-        배당수익률 = self.배당금[self.column]/현재주가
+        배당수익률 = self.배당금[self.column[3]]/현재주가
         배당수익률 = 배당수익률[symbol_list]
         배당수익률r = 배당수익률.rank(ascending=False)
 
@@ -250,17 +264,24 @@ class Combo:
         시총r = 시총.rank(ascending=False)
         selected = 시총[시총r<=200].index
 
-        print(self.영업현금흐름.loc[selected,self.column].shape)
+        c = self.column
+        #print(self.영업현금흐름.loc[selected,self.column].shape)
         print(len(selected))
-        selected = selected[self.영업현금흐름.loc[selected,self.column]>0]
+        s = self.영업현금흐름.loc[selected,:]
+        영업현금흐름sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        selected = selected[영업현금흐름sum>0]
         print(len(selected))
-        selected = selected[self.순이익.loc[selected,self.column]>0]
+        s = self.순이익.loc[selected,:]
+        순이익sum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        selected = selected[순이익sum>0]
         print(len(selected))
-        selected = selected[self.총자본.loc[selected,self.column]>0]
+        selected = selected[self.총자본.loc[selected,self.column[3]]>0]
         print(len(selected))
-        selected = selected[self.EBITDA.loc[selected,self.column]>0]
+        s = self.EBITDA.loc[selected,:]
+        EBITDAsum = s[c[0]] + s[c[1]] + s[c[2]] + s[c[3]]
+        selected = selected[EBITDAsum>0]
         print(len(selected))
-        selected = selected[self.배당금.loc[selected,self.column]>0]
+        selected = selected[self.배당금.loc[selected,self.column[3]]>0]
         print(len(selected))
         주식증감 = 발행주식수 - 작년발행주식수
         selected = selected[주식증감[selected]<=1.01]
@@ -427,7 +448,7 @@ class Strategy34:
         print("profit: x%d, cagr:%d%%, mdd:%d%%, SR:%.1f"%(profit, CAGR, MDD, SR))
 
     def main(self):
-        for year in range(2002,2016):
+        for year in range(2006,2016):
             self.combo.set_year(year)
             self.combo.set_selected()
             self.selected = self.combo.adapt_combo()
